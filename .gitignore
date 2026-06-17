@@ -1,0 +1,29 @@
+# Environment files
+.env
+.env.*
+*.local
+!.env.example
+
+# Logs
+*.log
+
+# Go build and test artifacts
+findme-api
+findme-api.exe
+*.test
+coverage.out
+coverage/
+
+# Go local caches
+.cache/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+.cache/

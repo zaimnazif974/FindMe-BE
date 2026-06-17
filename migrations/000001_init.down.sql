@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS memory_point_photos;
+DROP TABLE IF EXISTS memory_point_comments;
+DROP TABLE IF EXISTS memory_point_ratings;
+DROP TABLE IF EXISTS memory_points;
+DROP TABLE IF EXISTS live_location_latest_positions;
+DROP TABLE IF EXISTS live_location_sessions;
+DROP TABLE IF EXISTS location_share_photos;
+DROP TABLE IF EXISTS location_shares;
+DROP TABLE IF EXISTS group_members;
+DROP TABLE IF EXISTS groups;
+DROP TABLE IF EXISTS users;
