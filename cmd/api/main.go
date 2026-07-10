@@ -55,11 +55,17 @@ func main() {
 	}
 	defer func() { _ = redis.Close() }()
 
-	s3Client, err := storage.NewS3Client(ctx, cfg.AWSRegion)
+	spacesClient, err := storage.NewSpacesClient(
+		ctx,
+		cfg.SpacesRegion,
+		cfg.SpacesEndpoint,
+		cfg.SpacesAccessKey,
+		cfg.SpacesSecretKey,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	storageService := storage.NewService(s3Client, cfg.AWSS3Bucket, cfg.PresignedURLTTL)
+	storageService := storage.NewService(spacesClient, cfg.SpacesBucket, cfg.PresignedURLTTL)
 
 	userRepo := repositories.NewUserRepository(db)
 	userService := services.NewUserService(userRepo)

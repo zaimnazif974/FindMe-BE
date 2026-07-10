@@ -31,7 +31,7 @@ func (s *Service) Bucket() string {
 
 func (s *Service) Upload(ctx context.Context, key, contentType string, size int64, body io.Reader) error {
 	if s.bucket == "" {
-		return fmt.Errorf("AWS_S3_BUCKET is not configured")
+		return fmt.Errorf("SPACES_BUCKET is not configured")
 	}
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        String(s.bucket),
@@ -41,7 +41,7 @@ func (s *Service) Upload(ctx context.Context, key, contentType string, size int6
 		ContentLength: &size,
 	})
 	if err != nil {
-		return fmt.Errorf("upload S3 object: %w", err)
+		return fmt.Errorf("upload DigitalOcean Spaces object: %w", err)
 	}
 	return nil
 }
@@ -57,7 +57,7 @@ func (s *Service) PresignedDownloadURL(ctx context.Context, key string) (string,
 		Key:    String(key),
 	}, s3.WithPresignExpires(s.urlTTL))
 	if err != nil {
-		return "", fmt.Errorf("presign S3 object: %w", err)
+		return "", fmt.Errorf("presign DigitalOcean Spaces object: %w", err)
 	}
 	return result.URL, nil
 }

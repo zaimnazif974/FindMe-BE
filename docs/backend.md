@@ -12,7 +12,7 @@ internal/redis            Redis connection
 internal/middlewares      JWT, CORS, and rate limiting
 internal/validator        coordinates, photo validation, filenames
 internal/utils            response envelopes and infrastructure helpers
-internal/storage          AWS S3 client and storage service
+internal/storage          DigitalOcean Spaces client and storage service
 internal/websocket        hub, clients, handler, event contracts
 internal/dto/{module}     request and response contracts by feature
 internal/handlers         HTTP transport handlers
@@ -50,7 +50,7 @@ explicit and reviewable through versioned SQL migrations.
 - `locations`: one-time location shares and location photo metadata
 - `live_locations`: session lifecycle, latest positions, Redis cache, broadcasts
 - `memories`: points, ratings, comments, photos, average recalculation
-- `storage`: private S3 object operations and presigned downloads
+- `storage`: private DigitalOcean Spaces object operations and presigned downloads
 - `websocket`: authenticated group connections and realtime events
 
 ## Database Migration Guide
@@ -188,16 +188,16 @@ Logout is stateless: clients discard the JWT. Add a Redis denylist or refresh-to
 - Memory editing/deletion requires point ownership or group admin role.
 - Ratings, comments, and photos require current group membership.
 
-## S3 Upload Flow
+## DigitalOcean Spaces Upload Flow
 
 1. Gin parses multipart form field `photos`.
 2. Service verifies membership and existing photo count.
 3. Every file is validated before the first upload.
 4. Allowed MIME types/extensions: JPEG/JPG, PNG, WebP.
 5. Maximum size: 5 MB each; maximum five photos per resource.
-6. The service uploads to private S3.
+6. The service uploads to a private DigitalOcean Space.
 7. Repository inserts metadata.
-8. A database failure triggers best-effort S3 cleanup.
+8. A database failure triggers best-effort Spaces cleanup.
 9. Responses generate presigned GET URLs using the configured expiry.
 
 No local filesystem is used for permanent photos.

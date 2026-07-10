@@ -86,8 +86,8 @@ func (s *LocationService) AddPhotos(ctx context.Context, shareID, userID uuid.UU
 	if err != nil {
 		return nil, err
 	}
-	if len(files) == 0 || count+len(files) > 5 {
-		return nil, fmt.Errorf("%w: a location share can have at most 5 photos", apperror.ErrBadRequest)
+	if len(files) == 0 || len(files) > 5 || count+len(files) > 20 {
+		return nil, fmt.Errorf("%w: upload 1-5 photos at a time; a location share can have at most 20 photos", apperror.ErrBadRequest)
 	}
 	for _, file := range files {
 		if err := validator.Photo(file); err != nil {

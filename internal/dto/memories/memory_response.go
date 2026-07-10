@@ -26,7 +26,7 @@ type MemoryPoint struct {
 	Longitude     float64   `json:"longitude"`
 	AddressText   *string   `json:"address_text"`
 	AverageRating float64   `json:"average_rating"`
-	Photos        []Photo   `json:"photos"`
+	Photos        []Photo   `json:"photos" gorm:"-"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

@@ -43,10 +43,10 @@ func (r *LocationRepository) Share(ctx context.Context, userID uuid.UUID, reques
 		for _, groupID := range groupIDs {
 			var share locationdto.LocationShare
 			if err := tx.Raw(`
-				INSERT INTO location_shares (user_id, group_id, latitude, longitude, accuracy, address_text, note)
-				VALUES (?, ?, ?, ?, ?, ?, ?)
-				RETURNING id, user_id, group_id, latitude, longitude, accuracy, address_text, note, created_at
-			`, userID, groupID, *request.Latitude, *request.Longitude, request.Accuracy, request.AddressText, request.Note).
+				INSERT INTO location_shares (user_id, group_id, latitude, longitude, accuracy, name, address_text, note)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				RETURNING id, user_id, group_id, latitude, longitude, accuracy, name, address_text, note, created_at
+			`, userID, groupID, *request.Latitude, *request.Longitude, request.Accuracy, request.Name, request.AddressText, request.Note).
 				Scan(&share).Error; err != nil {
 				return err
 			}
@@ -61,7 +61,7 @@ func (r *LocationRepository) Share(ctx context.Context, userID uuid.UUID, reques
 func (r *LocationRepository) List(ctx context.Context, groupID uuid.UUID, latest bool) ([]locationdto.LocationShare, error) {
 	query := `
 		SELECT ls.id, ls.user_id, u.name AS user_name, u.avatar_url AS user_avatar, ls.group_id, ls.latitude, ls.longitude,
-		       ls.accuracy, ls.address_text, ls.note, ls.created_at
+		       ls.accuracy, ls.name, ls.address_text, ls.note, ls.created_at
 		FROM location_shares ls JOIN users u ON u.id = ls.user_id
 		WHERE ls.group_id = ? ORDER BY ls.created_at DESC LIMIT 200
 	`
@@ -69,7 +69,7 @@ func (r *LocationRepository) List(ctx context.Context, groupID uuid.UUID, latest
 		query = `
 			SELECT DISTINCT ON (ls.user_id) ls.id, ls.user_id, u.name AS user_name,
 			       u.avatar_url AS user_avatar, ls.group_id,
-			       ls.latitude, ls.longitude, ls.accuracy, ls.address_text, ls.note, ls.created_at
+			       ls.latitude, ls.longitude, ls.accuracy, ls.name, ls.address_text, ls.note, ls.created_at
 			FROM location_shares ls JOIN users u ON u.id = ls.user_id
 			WHERE ls.group_id = ? ORDER BY ls.user_id, ls.created_at DESC
 		`
@@ -89,7 +89,7 @@ func (r *LocationRepository) Find(ctx context.Context, shareID uuid.UUID) (locat
 	var share locationdto.LocationShare
 	err := r.db.WithContext(ctx).Raw(`
 		SELECT ls.id, ls.user_id, u.name AS user_name, u.avatar_url AS user_avatar, ls.group_id, ls.latitude, ls.longitude,
-		       ls.accuracy, ls.address_text, ls.note, ls.created_at
+		       ls.accuracy, ls.name, ls.address_text, ls.note, ls.created_at
 		FROM location_shares ls JOIN users u ON u.id = ls.user_id WHERE ls.id = ?
 	`, shareID).Scan(&share).Error
 	if err != nil {
@@ -110,9 +110,14 @@ func (r *LocationRepository) PhotoCount(ctx context.Context, shareID uuid.UUID) 
 func (r *LocationRepository) AddPhoto(ctx context.Context, shareID, userID, photoID uuid.UUID, bucket, key, filename, mime string, size int64) (locationdto.Photo, error) {
 	var photo locationdto.Photo
 	err := r.db.WithContext(ctx).Raw(`
-		INSERT INTO location_share_photos (id, location_share_id, user_id, s3_bucket, s3_key, file_name, mime_type, size_bytes)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		RETURNING id, file_name, mime_type, size_bytes, s3_key
+		WITH inserted AS (
+			INSERT INTO location_share_photos (id, location_share_id, user_id, s3_bucket, s3_key, file_name, mime_type, size_bytes)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			RETURNING id, user_id, file_name, mime_type, size_bytes, s3_key
+		)
+		SELECT i.id, i.user_id, u.name AS user_name, u.avatar_url AS user_avatar,
+		       i.file_name, i.mime_type, i.size_bytes, i.s3_key
+		FROM inserted i JOIN users u ON u.id = i.user_id
 	`, photoID, shareID, userID, bucket, key, filename, mime, size).Scan(&photo).Error
 	return photo, err
 }
@@ -123,9 +128,11 @@ func (r *LocationRepository) PhotosForShares(ctx context.Context, shareIDs []uui
 		return result, nil
 	}
 	rows, err := r.db.WithContext(ctx).Raw(`
-		SELECT location_share_id, id, file_name, mime_type, size_bytes, s3_key
-		FROM location_share_photos WHERE location_share_id IN ?
-		ORDER BY created_at
+		SELECT p.location_share_id, p.id, p.user_id, u.name AS user_name, u.avatar_url AS user_avatar,
+		       p.file_name, p.mime_type, p.size_bytes, p.s3_key
+		FROM location_share_photos p JOIN users u ON u.id = p.user_id
+		WHERE p.location_share_id IN ?
+		ORDER BY p.created_at
 	`, shareIDs).Rows()
 	if err != nil {
 		return nil, err
@@ -134,7 +141,7 @@ func (r *LocationRepository) PhotosForShares(ctx context.Context, shareIDs []uui
 	for rows.Next() {
 		var shareID uuid.UUID
 		var photo locationdto.Photo
-		if err := rows.Scan(&shareID, &photo.ID, &photo.FileName, &photo.MimeType, &photo.SizeBytes, &photo.S3Key); err != nil {
+		if err := rows.Scan(&shareID, &photo.ID, &photo.UserID, &photo.UserName, &photo.UserAvatar, &photo.FileName, &photo.MimeType, &photo.SizeBytes, &photo.S3Key); err != nil {
 			return nil, err
 		}
 		result[shareID] = append(result[shareID], photo)

@@ -16,8 +16,11 @@ type Config struct {
 	RedisPassword     string
 	JWTSecret         string
 	JWTExpiresIn      time.Duration
-	AWSRegion         string
-	AWSS3Bucket       string
+	SpacesRegion      string
+	SpacesEndpoint    string
+	SpacesAccessKey   string
+	SpacesSecretKey   string
+	SpacesBucket      string
 	PresignedURLTTL   time.Duration
 	CORSAllowedOrigin []string
 }
@@ -27,10 +30,11 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("parse JWT_EXPIRES_IN: %w", err)
 	}
-	minutes, err := strconv.Atoi(env("AWS_S3_PRESIGNED_URL_EXPIRES_MINUTES", "15"))
+	minutes, err := strconv.Atoi(env("SPACES_PRESIGNED_URL_EXPIRES_MINUTES", "15"))
 	if err != nil || minutes < 1 {
-		return Config{}, fmt.Errorf("AWS_S3_PRESIGNED_URL_EXPIRES_MINUTES must be a positive integer")
+		return Config{}, fmt.Errorf("SPACES_PRESIGNED_URL_EXPIRES_MINUTES must be a positive integer")
 	}
+	spacesRegion := env("SPACES_REGION", "sgp1")
 	cfg := Config{
 		AppEnv:            env("APP_ENV", "development"),
 		AppPort:           env("APP_PORT", "8080"),
@@ -39,8 +43,11 @@ func Load() (Config, error) {
 		RedisPassword:     os.Getenv("REDIS_PASSWORD"),
 		JWTSecret:         os.Getenv("JWT_SECRET"),
 		JWTExpiresIn:      jwtTTL,
-		AWSRegion:         env("AWS_REGION", "ap-southeast-1"),
-		AWSS3Bucket:       os.Getenv("AWS_S3_BUCKET"),
+		SpacesRegion:      spacesRegion,
+		SpacesEndpoint:    env("SPACES_ENDPOINT", "https://"+spacesRegion+".digitaloceanspaces.com"),
+		SpacesAccessKey:   os.Getenv("SPACES_ACCESS_KEY_ID"),
+		SpacesSecretKey:   os.Getenv("SPACES_SECRET_ACCESS_KEY"),
+		SpacesBucket:      os.Getenv("SPACES_BUCKET"),
 		PresignedURLTTL:   time.Duration(minutes) * time.Minute,
 		CORSAllowedOrigin: splitCSV(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173")),
 	}
