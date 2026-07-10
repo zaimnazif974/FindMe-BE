@@ -30,7 +30,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
     environment:
       APP_ENV: ${APP_ENV:-development}
       APP_PORT: ${APP_PORT:-15007}
